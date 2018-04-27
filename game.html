@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<script>
+	/* ************ assets
+	snow - https://incolor16.deviantart.com/art/Blizzard-Texture-327652402
+	wind - https://github.com/pixijs/pixi-particles/blob/master/docs/examples/rain.html
+	helicopter - http://paulmakegames.blogspot.pt/2017/04/attack-helicopter-animated-sprite.html
+	************ */
+var canvaswidth = 640;
+var canvasheight = 384;
+
+var app = new PIXI.Application(canvaswidth, canvasheight);
+document.body.appendChild(app.view);
+
+
+PIXI.loader
+    .add("helisprite","https://i.imgur.com/s8zA9lV.png")
+	.add("blizzard","https://i.imgur.com/KK0qIWA.png")
+	.add("wind","https://i.imgur.com/lp7ciwk.png")
+    .load(initVars);
+
+function initVars()
+{
+  app.stage.interactive = true;
+
+var wind = new PIXI.Container();
+var emitter = new PIXI.particles.Emitter(
+	wind,
+	[PIXI.loader.resources["wind"].texture],
+ 
+	{
+					"alpha": {
+						"start": 0.5,
+						"end": 0.5
+					},
+					"scale": {
+						"start": 1,
+						"end": 1
+					},
+					"color": {
+						"start": "ffffff",
+						"end": "ffffff"
+					},
+					"speed": {
+						"start": 3000,
+						"end": 3000
+					},
+					"startRotation": {
+						"min": 180,
+						"max": 180
+					},
+					"rotationSpeed": {
+						"min": 0,
+						"max": 0
+					},
+					"lifetime": {
+						"min": 0.81,
+						"max": 0.81
+					},
+					"blendMode": "normal",
+					"frequency": 0.004,
+					"emitterLifetime": 0,
+					"maxParticles": 200,
+					"pos": {
+						"x": 750,
+						"y":250
+					},
+					"addAtBack": true,
+					"spawnType": "rect",
+					"spawnRect": {
+						"x": -400,
+						"y": -260,
+						"w": 300,
+						"h": 150
+					}
+	}
+);
+	
+	var elapsed = Date.now();
+			
+	var blizTexture = PIXI.loader.resources["blizzard"].texture;	
+	farbliz = new PIXI.extras.TilingSprite(blizTexture, canvaswidth, canvasheight);
+	farbliz.position.x = 0;
+	farbliz.position.y = 0;
+	farbliz.tilePosition.x = 0;
+	farbliz.tilePosition.y = 0;
+	farbliz.alpha = 0.3;
+	app.stage.addChild(farbliz);
+	
+	midbliz = new PIXI.extras.TilingSprite(blizTexture, canvaswidth, canvasheight);
+	midbliz.position.x = 0;
+	midbliz.position.y = 0;
+	midbliz.tilePosition.x = 50;
+	midbliz.tilePosition.y = 0;
+	midbliz.alpha = 0.3;
+	app.stage.addChild(midbliz);
+
+    //app.ticker.FPS = 24;
+ 	var spriteholder = new PIXI.Rectangle(0, 0, 211, 75);
+	var helitexture = PIXI.loader.resources["helisprite"].texture;
+	helitexture.frame = spriteholder;
+	
+	helisprite = new PIXI.Sprite(helitexture);
+	helisprite.scale.set(0.5,0.5);
+	helisprite.position.y = 50;
+	helisprite.position.x = 60;
+	helisprite.anchor.set(0.5);
+	app.stage.addChild(helisprite);
+
+
+	var interactionArea = new PIXI.Graphics();
+	interactionArea.interactive = true;
+	interactionArea.hitArea = new PIXI.Rectangle(0, 0, canvaswidth, canvasheight);
+
+	app.stage.addChild(interactionArea);
+	var mouseY;
+	var mousepressed;
+	interactionArea.mousemove = function(mouseData) {
+	mouseY = mouseData.data.global['y']
+	}
+	
+	interactionArea.mousedown = function() {
+	 mousepressed = true;
+	}
+	interactionArea.mouseup = function() {
+
+	mousepressed = false;
+	}
+	
+	
+	var rand;
+	function addWind(){
+	rand = Math.floor(Math.random()*250+1);
+	app.stage.addChild(wind);
+	emitter.emit = true;
+	emitter.updateOwnerPos(750,rand)
+	};
+	
+	function removeWind(){
+	app.stage.removeChild(wind);
+	emitter.emit = false;
+	};
+
+	var successtext = new PIXI.Text('Congrats!', {
+        fill: 'white', 
+    });
+    successtext.position.set(20);
+	
+	var retrytext = new PIXI.Text('Try again!', {
+        fill: 'yellow', 
+    });
+    retrytext.position.set(20);
+	
+	var last = 0;
+	
+    app.ticker.add(function() {
+    if (spriteholder.y >= 75 * 3) spriteholder.y = 0;
+	spriteholder.y += 75;
+	helisprite.texture.frame = spriteholder;
+	helisprite.rotation = 0;
+	if (mousepressed) {helisprite.x += 0.5; helisprite.rotation = 0.2;}
+
+	if (helisprite.y >= mouseY){ helisprite.y -= 0.5;}
+	else { helisprite.y += 0.5;}
+		
+
+	var now = Date.now();
+	if (emitter.emit){
+	
+	emitter.update((now - elapsed) * 0.001);
+	elapsed = now;
+	if( !last || now - last >= 2*1000){
+	last = now;
+	removeWind();	
+	}
+	} else {
+	rand = Math.floor(Math.random()*250+1);
+	last = now;
+	addWind();
+	}
+
+	
+	if(helisprite.y > emitter.ownerPos.y  &&  helisprite.y < (emitter.ownerPos.y + 150) ){
+	helisprite.x -= 0.5
+	}
+		
+	if(helisprite.x > (canvaswidth + helisprite.width)) {
+	app.stage.addChild(successtext);
+	}
+
+	if(helisprite.x < (0 - helisprite.width)) {
+	app.stage.addChild(retrytext);
+	}
+
+	midbliz.tilePosition.x -= 0.512;
+	midbliz.tilePosition.y += 0.512;
+	farbliz.tilePosition.y += 1;
+    });
+}
+
+
+	
+	</script>
+
+	</body>
+</html>
